@@ -14,7 +14,12 @@ jobs:
           repository: 'Sanster/IOPaint'
           ref: 'main'
 
-      # 2. 登录你的腾讯云镜像仓库
+      # 2. 修复过期的 Dockerfile 基础镜像 (将旧 Buster 升级为最新 Bookworm)
+      - name: Fix outdated Debian Base Image
+        run: |
+          sed -i 's/python:3.10.11-slim-buster/python:3.10-slim-bookworm/g' ./docker/CPUDockerfile
+
+      # 3. 登录腾讯云镜像仓库
       - name: Login to Tencent CCR
         uses: docker/login-action@v3
         with:
@@ -22,15 +27,15 @@ jobs:
           username: ${{ secrets.TENCENT_USERNAME }}
           password: ${{ secrets.TENCENT_PASSWORD }}
 
-      # 3. 设置 Docker Buildx 构建器
+      # 4. 设置 Docker Buildx 构建器
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 4. 直接构建 CPU 版 IOPaint 镜像并推送到腾讯云 CCR
+      # 5. 构建镜像并推送到腾讯云 CCR
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/CPUDockerfile  # 使用官方 CPU Dockerfile 快速构建
+          file: ./docker/CPUDockerfile
           push: true
           tags: ccr.ccs.tencentyun.com/myiopaint/iopaint:latest
