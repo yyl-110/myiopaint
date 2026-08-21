@@ -14,10 +14,15 @@ jobs:
           repository: 'Sanster/IOPaint'
           ref: 'main'
 
-      # 2. 修复过期的 Dockerfile 基础镜像 (将旧 Buster 升级为最新 Bookworm)
-      - name: Fix outdated Debian Base Image
+      # 2. 修复 Debian 基础镜像 + 替换老旧失效的 lama-cleaner 安装指令
+      - name: Fix Dockerfile dependencies
         run: |
+          # 升级过期的 Debian 基础镜像
           sed -i 's/python:3.10.11-slim-buster/python:3.10-slim-bookworm/g' ./docker/CPUDockerfile
+          
+          # 将报错的 lama-cleaner==$version 替换为直接安装最新的 iopaint 包
+          sed -i 's/pip install lama-cleaner==$version/pip install iopaint/g' ./docker/CPUDockerfile
+          sed -i 's/lama-cleaner/iopaint/g' ./docker/CPUDockerfile
 
       # 3. 登录腾讯云镜像仓库
       - name: Login to Tencent CCR
@@ -31,7 +36,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 5. 构建镜像并推送到腾讯云 CCR
+      # 5. 构建并推送到腾讯云 CCR
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
