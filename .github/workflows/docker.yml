@@ -14,22 +14,24 @@ jobs:
           repository: 'Sanster/IOPaint'
           ref: 'main'
 
-      # 2. 修正 Dockerfile 语法与正确命令
-      - name: Fix Dockerfile syntax
+      # 2. 直接重写完整的 CPUDockerfile，彻底消除 sed 替换引发的语法叠加
+      - name: Rewrite CPUDockerfile
         run: |
-          # 升级 Debian 基础镜像
-          sed -i 's/python:3.10.11-slim-buster/python:3.10-slim-bookworm/g' ./docker/CPUDockerfile
-          
-          # 替换 pip 安装包
-          sed -i 's/pip install lama-cleaner==$version/pip install iopaint/g' ./docker/CPUDockerfile
-          
-          # 使用精确正确的插件安装命令 install-plugins-packages
-          sed -i 's/iopaint --install-plugins-package/iopaint install-plugins-packages/g' ./docker/CPUDockerfile
-          sed -i 's/lama-cleaner --install-plugins-package/iopaint install-plugins-packages/g' ./docker/CPUDockerfile
-          sed -i 's/iopaint install-plugins/iopaint install-plugins-packages/g' ./docker/CPUDockerfile
-          
-          # 屏蔽废弃的 ENV LD_PRELOAD
-          sed -i 's/ENV LD_PRELOAD/# ENV LD_PRELOAD/g' ./docker/CPUDockerfile
+          cat << 'EOF' > ./docker/CPUDockerfile
+          FROM python:3.10-slim-bookworm
+
+          RUN apt-get update && apt-get install -y --no-install-recommends \
+              software-properties-common \
+              libsm6 libxext6 ffmpeg libfontconfig1 libxrender1 libgl1-mesa-glx \
+              curl gcc build-essential \
+              && rm -rf /var/lib/apt/lists/*
+
+          RUN pip install --no-cache-dir iopaint
+          RUN iopaint install-plugins-packages
+
+          EXPOSE 8080
+          CMD ["iopaint", "start", "--model=lama", "--device=cpu", "--port=8080", "--host=0.0.0.0"]
+          EOF
 
       # 3. 登录腾讯云镜像仓库
       - name: Login to Tencent CCR
