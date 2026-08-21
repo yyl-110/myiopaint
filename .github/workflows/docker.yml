@@ -7,15 +7,6 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      # 1. 登录 GitHub 镜像仓库（解决 ghcr.io denied 权限问题）
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # 2. 登录腾讯云镜像仓库
       - name: Login to Tencent CCR
         uses: docker/login-action@v3
         with:
@@ -23,9 +14,13 @@ jobs:
           username: ${{ secrets.TENCENT_USERNAME }}
           password: ${{ secrets.TENCENT_PASSWORD }}
 
-      # 3. 执行拉取与推送
       - name: Pull and Push IOPaint Image
         run: |
-          docker pull ghcr.io/sanster/iopaint:latest
-          docker tag ghcr.io/sanster/iopaint:latest ccr.ccs.tencentyun.com/myiopaint/iopaint:latest
+          # 1. 使用带具体版本号的 GitHub 官方镜像，或者 HuggingFace 转存镜像
+          docker pull ghcr.io/sanster/iopaint:1.2.0 || docker pull ghcr.io/sanster/iopaint:main
+          
+          # 2. 标记镜像 Tag（获取拉取成功的镜像并重新打标）
+          docker tag $(docker images -q | head -n 1) ccr.ccs.tencentyun.com/myiopaint/iopaint:latest
+          
+          # 3. 推送到腾讯云 CCR
           docker push ccr.ccs.tencentyun.com/myiopaint/iopaint:latest
