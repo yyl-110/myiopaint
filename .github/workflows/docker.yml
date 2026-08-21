@@ -1,4 +1,4 @@
-name: Build and Push IOPaint to Tencent CCR
+name: Build and Push IOPaint to GHCR Public
 
 on:
   workflow_dispatch:
@@ -6,15 +6,17 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      # 1. 下载 IOPaint 官方源代码
       - name: Checkout IOPaint Repository
         uses: actions/checkout@v4
         with:
           repository: 'Sanster/IOPaint'
           ref: 'main'
 
-      # 2. 直接重写完整的 CPUDockerfile，彻底消除 sed 替换引发的语法叠加
       - name: Rewrite CPUDockerfile
         run: |
           cat << 'EOF' > ./docker/CPUDockerfile
@@ -33,23 +35,21 @@ jobs:
           CMD ["iopaint", "start", "--model=lama", "--device=cpu", "--port=8080", "--host=0.0.0.0"]
           EOF
 
-      # 3. 登录腾讯云镜像仓库
-      - name: Login to Tencent CCR
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ccr.ccs.tencentyun.com
-          username: ${{ secrets.TENCENT_USERNAME }}
-          password: ${{ secrets.TENCENT_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4. 设置 Docker Buildx 构建器
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 5. 构建并推送到腾讯云 CCR
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/CPUDockerfile
           push: true
-          tags: ccr.ccs.tencentyun.com/myiopaint/iopaint:latest
+          # 打标为你的 GitHub 账号下的镜像名称
+          tags: ghcr.io/${{ github.repository_owner }}/iopaint:latest
