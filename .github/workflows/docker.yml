@@ -14,20 +14,21 @@ jobs:
           repository: 'Sanster/IOPaint'
           ref: 'main'
 
-      # 2. 修正老旧 Dockerfile 的全部语法问题
+      # 2. 修正 Dockerfile 语法与正确命令
       - name: Fix Dockerfile syntax
         run: |
-          # 升级过期的 Debian 基础镜像
+          # 升级 Debian 基础镜像
           sed -i 's/python:3.10.11-slim-buster/python:3.10-slim-bookworm/g' ./docker/CPUDockerfile
           
-          # 替换安装包命令
+          # 替换 pip 安装包
           sed -i 's/pip install lama-cleaner==$version/pip install iopaint/g' ./docker/CPUDockerfile
           
-          # 修正插件安装命令（--install-plugins-package 替换为新命令 install-plugins）
-          sed -i 's/iopaint --install-plugins-package/iopaint install-plugins/g' ./docker/CPUDockerfile
-          sed -i 's/lama-cleaner --install-plugins-package/iopaint install-plugins/g' ./docker/CPUDockerfile
+          # 使用精确正确的插件安装命令 install-plugins-packages
+          sed -i 's/iopaint --install-plugins-package/iopaint install-plugins-packages/g' ./docker/CPUDockerfile
+          sed -i 's/lama-cleaner --install-plugins-package/iopaint install-plugins-packages/g' ./docker/CPUDockerfile
+          sed -i 's/iopaint install-plugins/iopaint install-plugins-packages/g' ./docker/CPUDockerfile
           
-          # 屏蔽导致报错的旧版 LD_PRELOAD
+          # 屏蔽废弃的 ENV LD_PRELOAD
           sed -i 's/ENV LD_PRELOAD/# ENV LD_PRELOAD/g' ./docker/CPUDockerfile
 
       # 3. 登录腾讯云镜像仓库
